@@ -2,7 +2,7 @@ from abc import abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from gym.spaces import Discrete
@@ -113,6 +113,7 @@ class LMActorCriticPolicy(BasePolicy):
         optimizer_class: torch.optim.Optimizer = torch.optim.AdamW,
         generation_kwargs: Dict[str, Any] = {},
         prompt_truncation_side: str = "left",
+        ref_model: Union[str, PreTrainedModel] = None
     ):
         """
 
@@ -132,7 +133,7 @@ class LMActorCriticPolicy(BasePolicy):
         super().__init__(observation_space, action_space)
         self._action_space = action_space
         self._apply_model_parallel = apply_model_parallel
-        self._build_model_heads(model_name)
+        self._build_model_heads(model_name, ref_model=ref_model)
         self._setup_optimizer(optimizer_kwargs, weight_decay, optimizer_class)
         self._action_dist = CategoricalDistribution(self._action_space.n)
         self._generation_kwargs = generation_kwargs
@@ -267,7 +268,7 @@ class LMActorCriticPolicy(BasePolicy):
 
     # Following methods need to be implemented by sub-classing
     @abstractmethod
-    def _build_model_heads(self, model_name: str):
+    def _build_model_heads(self, model_name: str, ref_model: Union[str, PreTrainedModel] = None):
         """
         Builds policy and value models
         and sets self._policy_model and self._value_model

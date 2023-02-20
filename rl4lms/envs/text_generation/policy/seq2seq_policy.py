@@ -3,7 +3,7 @@ import torch
 from gym.spaces import Discrete
 from gym.spaces.dict import Dict as DictSpace
 from torch import nn
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, PreTrainedModel
 from stable_baselines3.common.distributions import CategoricalDistribution
 from torch.distributions import Categorical
 from copy import deepcopy
@@ -47,6 +47,7 @@ class Seq2SeqLMActorCriticPolicy(LMActorCriticPolicy, ActorCriticWarmStartMixin)
         generation_kwargs: Dict[str, Any] = {},
         prompt_truncation_side: str = "left",
         state_dict: Dict[str, Any] = None,
+        **kwargs
     ):
         super().__init__(
             observation_space,
@@ -60,17 +61,28 @@ class Seq2SeqLMActorCriticPolicy(LMActorCriticPolicy, ActorCriticWarmStartMixin)
             optimizer_class,
             generation_kwargs,
             prompt_truncation_side,
+            **kwargs
         )
         self.load_from_dict(state_dict)
 
-    def _build_model_heads(self, model_name: str):
+    def _build_model_heads(self, model_name: str, ref_model: Union[str, PreTrainedModel] = None):
         self._policy_model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
         self._policy_model.__class__ = override_generation_routines(
             type(self._policy_model)
         )
 
         self._value_model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-        self._ref_model = deepcopy(self._policy_model).eval()
+        if ref_model is None:
+            self._ref_model = deepcopy(self._policy_model).eval()
+        else:
+            if isinstance(ref_model, str):
+                self._ref_model = AutoModelForSeq2SeqLM.from_pretrained(ref_model).eval()
+            else:
+                self._ref_model = ref_model.eval()
+            self._ref_model.__class__ = override_generation_routines(
+                type(self._policy_model)
+            )
+
 
         self._value_head = nn.Linear(
             self._value_model.config.hidden_size, 1, bias=False
@@ -363,6 +375,7 @@ class MaskedSeq2SeqLMActorCriticPolicy(
         prompt_truncation_side: str = "left",
         state_dict: Dict[str, Any] = None,
         min_tokens_to_keep: int = 100,
+        **kwargs
     ):
         self.min_tokens_to_keep = min_tokens_to_keep
         self.mask_type = mask_type
@@ -381,6 +394,7 @@ class MaskedSeq2SeqLMActorCriticPolicy(
             generation_kwargs,
             prompt_truncation_side,
             state_dict,
+            **kwargs
         )
 
         self._action_dist = MaskableCategoricalDistribution(self._action_space.n)
@@ -388,8 +402,8 @@ class MaskedSeq2SeqLMActorCriticPolicy(
         self._mask_action_dist = CategoricalDistribution(self._action_space.n)
         self.all_special_ids = None
 
-    def _build_model_heads(self, model_name: str):
-        super()._build_model_heads(model_name)
+    def _build_model_heads(self, model_name: str, ref_model: Union[str, PreTrainedModel] = None):
+        super()._build_model_heads(model_name, ref_model=ref_model)
         if "learned" in self.mask_type:
             self._mask_model = deepcopy(self._policy_model).eval()
         else:
