@@ -57,24 +57,24 @@ class TextGenEnv(Env):
                 # we have to provide fixed sized inputs (padded) because sb3 support for DictObsersevation is limited
                 # while creating rollout buffers, observations are concatenated for each key
                 "prompt_or_input_encoded_pt": spaces.Box(
-                    low=0, high=self._vocab_size, shape=(self._max_text_length,)
+                    low=0, high=self._vocab_size, shape=(self._max_text_length,), dtype=int
                 ),
                 "prompt_or_input_attention_mask_pt": spaces.Box(
-                    low=0, high=1, shape=(self._max_text_length,)
+                    low=0, high=1, shape=(self._max_text_length,), dtype=int
                 ),
                 "context_encoded_pt": spaces.Box(
-                    low=0, high=self._vocab_size, shape=(self.max_steps,)
+                    low=0, high=self._vocab_size, shape=(self.max_steps,), dtype=int
                 ),
                 "context_attention_mask_pt": spaces.Box(
-                    low=0, high=1, shape=(self.max_steps,)
+                    low=0, high=1, shape=(self.max_steps,), dtype=int
                 ),
                 "input_encoded_pt": spaces.Box(
                     low=0,
                     high=self._vocab_size,
-                    shape=(self._max_text_length + self.max_steps,),
+                    shape=(self._max_text_length + self.max_steps,), dtype=int
                 ),
                 "input_attention_mask_pt": spaces.Box(
-                    low=0, high=1, shape=(self._max_text_length + self.max_steps,)
+                    low=0, high=1, shape=(self._max_text_length + self.max_steps,), dtype=int
                 ),
             }
         )
