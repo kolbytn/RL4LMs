@@ -15,7 +15,7 @@ from rl4lms.envs.text_generation.registry import (DataPoolRegistry,
                                                    WrapperRegistry)
 from rl4lms.envs.text_generation.reward import RewardFunction
 from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from transformers import (AutoTokenizer,
                           AutoModelForCausalLM,
                           AutoModelForSeq2SeqLM,
@@ -87,10 +87,10 @@ def build_env(env_config: Dict[str, Any],
         "samples": train_samples,
     }
     env_kwargs = {**env_kwargs, **env_config.get("args", {})}
-    env = make_vec_env(TextGenEnv,
-                       n_envs=env_config.get(
-                           "n_envs", 1),
-                       vec_env_cls=SubprocVecEnv,
+    env = make_vec_env(env_config["custom_env"] if "custom_env" in env_config else TextGenEnv,
+                       n_envs=env_config.get("n_envs", 1),
+                       vec_env_cls=DummyVecEnv if "parallel_envs" in env_config and not env_config["parallel_envs"] 
+                            else SubprocVecEnv,
                        env_kwargs=env_kwargs)
     return env
 
