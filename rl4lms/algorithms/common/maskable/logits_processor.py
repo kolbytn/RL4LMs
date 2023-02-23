@@ -179,12 +179,14 @@ class MaskLogitsProcessorSeq2SeqLM(LogitsProcessor):
         self.get_policy_first_device = get_policy_first_device
         self.mask_type = mask_type
         self.min_tokens_to_keep = min_tokens_to_keep
+        self.prompt_ids = None
 
     def reset(self):
         self.past_model_kwargs = None
         self.attention_mask = None
         self.action_masks = None
         self.all_special_ids = None
+        self.prompt_ids = None
         # self._action_dist = MaskableCategoricalDistribution(
         #     self.action_space.n)
 
@@ -278,6 +280,18 @@ class MaskLogitsProcessorSeq2SeqLM(LogitsProcessor):
             action_masks = action_masks.scatter(
                 index=indices_to_remove.long(), dim=1, value=1
             )
+        elif self.mask_type == "from_prompt":
+            if self.prompt_ids is not None:
+                next_token_probs = scores
+                for i in range(self.prompt_ids.shape[0]):
+                    prompt_remaining = torch.clone(self.prompt_ids[i]).to(device=input_ids.device)
+                    for t in range(input_ids.shape[-1]):
+                        found_idx = torch.where(prompt_remaining == input_ids[i, t])[0]
+                        if found_idx.shape[0] > 0:
+                            prompt_remaining = prompt_remaining[found_idx[0]+1:]
+                    action_masks[i, prompt_remaining] = 1
+            else:
+                print("Warning: selected \"from prompt\" decoding, but no prompt provided")
         else:
             raise NotImplementedError
 

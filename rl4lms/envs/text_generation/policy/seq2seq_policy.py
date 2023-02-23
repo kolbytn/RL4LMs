@@ -585,6 +585,7 @@ class MaskedSeq2SeqLMActorCriticPolicy(
             attention_mask = encodings.attention_mask
             tokenizer.truncation_side = prev_truncation_side
 
+        self.logits_processor.prompt_ids = torch.clone(input_ids)
         self.logits_processor.attention_mask = attention_mask.to(
             self.get_policy_first_device()
         )
