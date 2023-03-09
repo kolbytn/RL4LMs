@@ -97,7 +97,7 @@ class TextGenEnv(Env):
         self.tokenizer.truncation_side = "left"  # TBD: configure this
 
         # init tracking variables
-        self.__current_sample = None
+        self._current_sample = None
         self.__current_obs = None
         self.__time_step = None
 
@@ -150,7 +150,7 @@ class TextGenEnv(Env):
         # gets a new sample if not provided
         if sample is None:
             sample = self.sampler_for_replaying.sample(size=1)[0]
-        self.__current_sample = sample
+        self._current_sample = sample
 
         # init the observation
         self.__current_obs = Observation.init_from_sample(
