@@ -32,8 +32,11 @@ from rl4lms.envs.text_generation.warm_start import TrainerWarmStartMixin
 
 
 def build_tokenizer(tokenizer_config: Dict[str, Any]):
+    kwargs = dict()
+    if "use_fast" in tokenizer_config:
+        kwargs["use_fast"] = tokenizer_config["use_fast"]
     tokenizer = AutoTokenizer.from_pretrained(
-        tokenizer_config["model_name"])
+        tokenizer_config["model_name"], **kwargs)
     if tokenizer.pad_token is None and tokenizer_config.get("pad_token_as_eos_token", True):
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = tokenizer_config.get(
@@ -274,7 +277,8 @@ class SupervisedTrainer:
             "model_type"] == "causal" else AutoModelForSeq2SeqLM
         self._gen_kwargs = self._alg_config["generation_kwargs"]
         self._model = model_cls.from_pretrained(self._alg_config["model_name"])
-        self._model.parallelize()
+        if hasattr(self._model, "parallelize"):
+            self._model.parallelize()
         self._eval_batch_size = self._train_eval_config["eval_batch_size"]
 
         # setting max prompt length

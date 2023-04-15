@@ -91,9 +91,11 @@ def generate(model: PreTrainedModel,
     if model.config.is_encoder_decoder:
         # seq2seq LM
         first_device = model.encoder.first_device
-    else:
+    elif hasattr(model, "transformer"):
         # causal LM
         first_device = model.transformer.first_device
+    else:
+        first_device = model.device
 
     # generate
     gen_output = model.generate(

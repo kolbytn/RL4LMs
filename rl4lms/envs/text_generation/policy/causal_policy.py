@@ -74,8 +74,11 @@ class CausalLMActorCriticPolicy(LMActorCriticPolicy, ActorCriticWarmStartMixin):
         self._value_model = AutoModelForCausalLM.from_pretrained(model_name)
         self._ref_model = deepcopy(self._policy_model).eval()
 
+        hidden_size = self._value_model(output_hidden_states=True, **self._prepare_inputs_for_model(
+            self._value_model, torch.zeros((1, 1), dtype=torch.long), dict()
+        )).hidden_states[-1].shape[2]
         self._value_head = nn.Linear(
-            self._value_model.config.hidden_size, 1, bias=False
+            hidden_size, 1, bias=False
         )
 
         # apply model parallel
